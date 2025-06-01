@@ -1,0 +1,12 @@
+# Ignore build and install folders (if any inside project)
+build/
+install/
+log/
+
+# Python bytecode
+__pycache__/
+*.pyc
+
+# IDE/editor files
+.vscode/
+.idea/
