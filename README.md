@@ -1,75 +1,52 @@
-# Project Status
-## Implemented So Far:
-### 1. Robot Control Module
+# Gesture-Controlled Robot 🤖✋
 
-    Node: robot_node.py
+A modular ROS2 system that allows a robot to be controlled using static hand gestures from a webcam.
 
-    Subscribes to /cmd_vel (geometry_msgs/Twist)
+---
 
-    Simulates robot motion and publishes visualization markers to RViz
+## 📦 Modules
 
-    Launches with robot_control.launch.py
+### 1. Gesture Recognition (MediaPipe + OpenCV)
+- Detects static hand gestures (1–5 fingers)
+- Publishes gesture labels to `/gesture_cmds`
 
-### 2. Gesture Recognition Module (v1)
+### 2. Motion Translator
+- Converts gesture labels to velocity commands (`/cmd_vel`)
+- Smooths speed changes based on gesture duration
 
-    Node: gesture_node_v1.py
+### 3. Robot Control
+- Subscribes to `/cmd_vel`
+- Simulates robot movement and displays pose in RViz
 
-    Uses webcam + MediaPipe to detect simple static hand gestures
+---
 
-    Maps gestures to commands:
+## 🔁 Interfaces
 
-        ✋ (5 fingers) → "stop"
+| Topic           | Type                  | Description                        |
+|----------------|-----------------------|------------------------------------|
+| `/gesture_cmds` | `std_msgs/String`     | Input gesture: `"stop"`, `"left"`, etc. |
+| `/cmd_vel`      | `geometry_msgs/Twist` | Robot movement commands            |
 
-        ☝️ (1 finger) → "left"
+---
 
-        ✌️ (2 fingers) → "right"
+## ✅ Current Status
 
-        🤟 (3 fingers) → "forward"
+| Module               | Status     | Tested With        |
+|----------------------|------------|--------------------|
+| Gesture Recognition  | ✅ Working | MediaPipe, webcam  |
+| Motion Translator    | ✅ Working | CLI & gesture input |
+| Robot Control        | ✅ Working | RViz simulation    |
 
-    Publishes recognized gestures to /gesture_cmds (std_msgs/String)
+---
 
-# Project Structure
+## 🚀 How to Run (Module-wise)
 
-    gesture_controlled_robot/
-    ├── gesture_recognition/        # Gesture detection node
-    ├── robot_control/              # Robot simulator + RViz
-    └── (motion_translator/)        # (Planned) Gesture → velocity translator
+```bash
+# 1. Gesture Node
+ros2 run gesture_recognition gesture_node_v1
 
-# How to Run the Project
-## Prerequisites
+# 2. Motion Translator
+ros2 run motion_translator motion_translator_node
 
-    ROS 2 Humble (or compatible version)
-
-    Python 3.8+
-
-    MediaPipe (pip install mediapipe)
-
-    OpenCV (pip install opencv-python)
-
-# Steps to Launch Modules
-
-## Step 1: Build your workspace
-```
-cd ~/ros2_ws2
-colcon build --packages-select gesture_recognition robot_control
-source install/setup.bash
-```
-## Step 2: Start the robot simulator + RViz
-```
+# 3. Robot Control + RViz
 ros2 launch robot_control robot_control.launch.py
-```
-## Step 3: Run the gesture detection node
-```
-ros2 launch gesture_recognition gesture_recognition.launch.py
-```
-### You can monitor the gesture commands:
-```
-ros2 topic echo /gesture_cmds
-```
-  📝 Note: You’ll need to manually test the full pipeline (gesture → /cmd_vel) after implementing the motion_translator.
-
-# Next Planned Modules
-
-    motion_translator: Subscribes to /gesture_cmds, outputs /cmd_vel
-
-    Combined launch file to run all nodes together
