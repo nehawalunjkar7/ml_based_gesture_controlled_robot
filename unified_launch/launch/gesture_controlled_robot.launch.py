@@ -16,7 +16,7 @@ def generate_launch_description():
 
         Node(
             package='gesture_recognition',
-            executable='gesture_node_v1',
+            executable='gesture_node_v2',
             name='gesture_recognition_node',
             output='screen',
             condition=IfCondition(enable_gesture)

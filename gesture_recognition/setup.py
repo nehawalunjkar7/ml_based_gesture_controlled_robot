@@ -22,6 +22,7 @@ setup(
     entry_points={
         'console_scripts': [
             'gesture_node_v1 = gesture_recognition.gesture_node_v1:main',
+            'gesture_node_v2 = gesture_recognition.gesture_node_v2:main',
         ],
     },
 )

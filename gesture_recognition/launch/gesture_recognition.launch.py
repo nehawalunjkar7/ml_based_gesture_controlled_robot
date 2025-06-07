@@ -5,7 +5,7 @@ def generate_launch_description():
     return LaunchDescription([
         Node(
             package='gesture_recognition',
-            executable='gesture_node_v1',
+            executable='gesture_node_v2',
             name='gesture_node',
             output='screen',
         ),

@@ -24,9 +24,15 @@ class MotionTranslator(Node):
         self.rate = self.get_parameter("update_rate").value
 
         # Current motion state
-        self.target_gesture = "stop"
         self.current_linear = 0.0
         self.current_angular = 0.0
+        self.last_valid_command = "Stop"
+
+        # Missed gesture handling
+        self.missed_frames = 0
+        self.n1 = 3
+        self.n2 = 6
+        self.n3 = 10
 
         # ROS interfaces
         self.gesture_sub = self.create_subscription(String, "/gesture_cmds", self.gesture_callback, 10)
@@ -36,34 +42,54 @@ class MotionTranslator(Node):
         self.timer = self.create_timer(1.0 / self.rate, self.update_motion)
 
     def gesture_callback(self, msg):
-        self.target_gesture = msg.data.lower()
+        gesture = msg.data
+        if gesture == "Unknown gesture":
+            self.missed_frames += 1
+        else:
+            self.missed_frames = 0
+            self.last_valid_command = gesture
 
     def update_motion(self):
-        # Reset speeds
-        target_linear = 0.0
-        target_angular = 0.0
+        if self.missed_frames > self.n3:
+            # Emergency stop
+            target_linear = 0.0
+            target_angular = 0.0
+        elif self.missed_frames > self.n2:
+            # Safe reduction in speed
+            target_linear = max(self.current_linear - self.linear_step, -self.max_linear)
+            target_angular = 0.0
+        else:
+            # Normal operation or n1 < missed <= n2 fallback
+            target_linear, target_angular = self._target_for_command(self.last_valid_command)
 
-        if self.target_gesture == "forward":
-            target_linear = self.max_linear
-        elif self.target_gesture == "left":
-            target_angular = self.max_angular
-        elif self.target_gesture == "right":
-            target_angular = -self.max_angular
-        elif self.target_gesture == "stop":
-            pass  # stay at zero
-
-        # Smoothly adjust speeds
+        # Smooth transition
         self.current_linear = self._approach(self.current_linear, target_linear, self.linear_step)
         self.current_angular = self._approach(self.current_angular, target_angular, self.angular_step)
 
-        # Publish command
+        # Publish Twist
         twist = Twist()
         twist.linear.x = self.current_linear
         twist.angular.z = self.current_angular
         self.cmd_pub.publish(twist)
 
+    def _target_for_command(self, cmd):
+        if cmd == "Stop":
+            return 0.0, 0.0
+        elif cmd == "Reduce speed":
+            return max(self.current_linear - self.linear_step, -self.max_linear), 0.0
+        elif cmd == "Continue moving forward":
+            return self.current_linear, self.current_angular
+        elif cmd == "Turn left":
+            return 0.0, self.max_angular
+        elif cmd == "Turn right":
+            return 0.0, -self.max_angular
+        elif cmd == "Increase speed":
+            return min(self.current_linear + self.linear_step, self.max_linear), self.current_angular
+        else:
+            return 0.0, 0.0  # Unknown
+
     def _approach(self, current, target, step):
-        if abs(target - current) < step:
+        if abs(current - target) < step:
             return target
         return current + step if target > current else current - step
 
@@ -73,4 +99,3 @@ def main(args=None):
     rclpy.spin(node)
     node.destroy_node()
     rclpy.shutdown()
-

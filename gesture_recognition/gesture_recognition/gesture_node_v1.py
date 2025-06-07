@@ -17,12 +17,16 @@ class GestureRecognitionNode(Node):
         self.mp_drawing = mp.solutions.drawing_utils
         self.mp_hands = mp.solutions.hands
         self.running = True
+        self.debug = False   # <-- DEBUG MODE: Set to False to hide finger count display
 
     def detect_gesture(self):
         if not self.running:
             return
 
         ret, frame = self.cap.read()
+        if self.debug:
+            frame = cv2.flip(frame, 1)  # Optional: mirror for visual comfort
+            
         if not ret:
             self.get_logger().warn('Failed to capture image')
             return
@@ -35,13 +39,18 @@ class GestureRecognitionNode(Node):
             # For now, just consider first detected hand
             hand_landmarks = results.multi_hand_landmarks[0]
             self.mp_drawing.draw_landmarks(frame, hand_landmarks, self.mp_hands.HAND_CONNECTIONS)
-            extended_fingers = self.count_extended_fingers(hand_landmarks)
-            gesture = self.classify_gesture(extended_fingers)
+            finger_states = self.get_finger_states(hand_landmarks)
+            gesture = self.classify_gesture(finger_states, hand_landmarks)
             self.publish_gesture(gesture)
 
         # Overlay gesture text on frame
         cv2.putText(frame, f'Gesture: {gesture}', (10, 30), 
                     cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+        if self.debug and results.multi_hand_landmarks:
+            cv2.putText(frame, f'Fingers: {finger_states}', (10, 70),
+                        cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
+            print(f"Finger States: {finger_states}")
+
 
         cv2.imshow('Gesture Recognition', frame)
 
@@ -52,49 +61,76 @@ class GestureRecognitionNode(Node):
             cv2.destroyAllWindows()
             rclpy.shutdown()
 
-    def count_extended_fingers(self, hand_landmarks):
-        extended_fingers = 0
+    def get_finger_states(self, hand_landmarks):
+        fingers = {}
 
-        # Thumb: check relative x coordinate because thumb points sideways
-        wrist = hand_landmarks.landmark[self.mp_hands.HandLandmark.WRIST]
+        # Thumb (x comparison because it's sideways)
         thumb_tip = hand_landmarks.landmark[self.mp_hands.HandLandmark.THUMB_TIP]
         thumb_ip = hand_landmarks.landmark[self.mp_hands.HandLandmark.THUMB_IP]
+        fingers['thumb'] = thumb_tip.x < thumb_ip.x  # right hand assumption
 
-        if thumb_tip.x < thumb_ip.x:  # Assuming right hand
-            extended_fingers += 1
-
-        # Fingers tips and dips
-        finger_tips = [
+        # Other fingers (y comparison: tip above pip)
+        tips = [
             self.mp_hands.HandLandmark.INDEX_FINGER_TIP,
             self.mp_hands.HandLandmark.MIDDLE_FINGER_TIP,
             self.mp_hands.HandLandmark.RING_FINGER_TIP,
             self.mp_hands.HandLandmark.PINKY_TIP
         ]
 
-        finger_dips = [
-            self.mp_hands.HandLandmark.INDEX_FINGER_DIP,
-            self.mp_hands.HandLandmark.MIDDLE_FINGER_DIP,
-            self.mp_hands.HandLandmark.RING_FINGER_DIP,
-            self.mp_hands.HandLandmark.PINKY_DIP
+        pips = [
+            self.mp_hands.HandLandmark.INDEX_FINGER_PIP,
+            self.mp_hands.HandLandmark.MIDDLE_FINGER_PIP,
+            self.mp_hands.HandLandmark.RING_FINGER_PIP,
+            self.mp_hands.HandLandmark.PINKY_PIP
         ]
 
-        for tip, dip in zip(finger_tips, finger_dips):
-            if hand_landmarks.landmark[tip].y < hand_landmarks.landmark[dip].y:
-                extended_fingers += 1
+        labels = ['index', 'middle', 'ring', 'pinky']
 
-        return extended_fingers
+        for tip, pip, label in zip(tips, pips, labels):
+            fingers[label] = hand_landmarks.landmark[tip].y < hand_landmarks.landmark[pip].y
 
-    def classify_gesture(self, extended_fingers):
-        if extended_fingers == 0:
+        return fingers
+
+
+    def classify_gesture(self, finger_states, hand_landmarks):
+        thumb = finger_states['thumb']
+        index = finger_states['index']
+        middle = finger_states['middle']
+        ring = finger_states['ring']
+        pinky = finger_states['pinky']
+
+        # Stop: All fingers except thumb extended
+        if index and middle and ring and pinky and not thumb:
             return 'stop'
-        elif extended_fingers == 1:
-            return 'left'
-        elif extended_fingers == 2:
-            return 'right'
-        elif extended_fingers == 3:
-            return 'forward'
-        else:
-            return 'unknown'
+
+        # Turn Left: Only index finger extended
+        if index and not middle and not ring and not pinky and not thumb:
+            return 'turn_left'
+
+        # Turn Left + Forward: Index + Thumb up
+        if index and not middle and not ring and not pinky and thumb:
+            # Confirm thumb is pointing upward
+            thumb_tip = hand_landmarks.landmark[self.mp_hands.HandLandmark.THUMB_TIP]
+            thumb_ip = hand_landmarks.landmark[self.mp_hands.HandLandmark.THUMB_IP]
+            if thumb_tip.y < thumb_ip.y:
+                return 'turn_left_forward'
+
+        # Two fingers: Forward constant
+        if index and middle and not ring and not pinky:
+            return 'forward_constant'
+
+        # Three fingers: Accelerate
+        if index and middle and ring and not pinky:
+            return 'forward_accelerate'
+
+        # Thumb down
+        if thumb and not index and not middle and not ring and not pinky:
+            thumb_tip = hand_landmarks.landmark[self.mp_hands.HandLandmark.THUMB_TIP]
+            thumb_ip = hand_landmarks.landmark[self.mp_hands.HandLandmark.THUMB_IP]
+            if thumb_tip.y > thumb_ip.y:
+                return 'slow_down_or_reverse'
+
+        return 'unknown'
 
     def publish_gesture(self, gesture):
         msg = String()
