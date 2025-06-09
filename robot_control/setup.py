@@ -11,6 +11,7 @@ setup(
     data_files=[
         ('share/' + package_name, ['package.xml']),
         (os.path.join('share', package_name, 'launch'), glob('launch/*.launch.py')),
+        (os.path.join('share', package_name, 'rviz'), ['rviz/robot_visual.rviz']),
 
     ],
     install_requires=['setuptools'],

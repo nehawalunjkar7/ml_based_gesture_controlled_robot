@@ -23,7 +23,7 @@ class FingerInfo:
 
 GESTURE_MEANINGS = {
     'palm': 'Stop',
-    'fist': 'Reduce speed',
+    'fist': 'Wait',
     'index_up': 'Continue moving forward',
     'index_left': 'Turn left',
     'index_right': 'Turn right',
@@ -171,30 +171,33 @@ def main():
 
             finger_status = get_hand_finger_status(hand_landmarks, mp_hands)
             gesture = detect_named_gesture(finger_status)
-            meaning = GESTURE_MEANINGS.get(gesture, "Unknown gesture")
+        else:
+            gesture = 'unknown'
 
-            # Publish the gesture meaning
-            msg = String()
-            msg.data = meaning
-            node.publisher_.publish(msg)
-            if DEBUG:
-                print(f"[Gesture Node] Published: {meaning}")  # Optional debug log
+        meaning = GESTURE_MEANINGS.get(gesture, "Unknown gesture")
 
-            # Always show high-level gesture
-            cv2.putText(frame, f"Gesture: {meaning}", (10, 40),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 255), 2)
+        # Publish the gesture meaning
+        msg = String()
+        msg.data = meaning
+        node.publisher_.publish(msg)
+        if DEBUG:
+            print(f"[Gesture Node] Published: {meaning}")  # Optional debug log
 
-            if DEBUG:
-                # Additionally show detailed finger info
-                text_vertical_pos = 100  # Start lower to avoid overlapping gesture text
-                cv2.putText(frame, f"Gesture: {gesture}", (10, 75),
-                        cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 255, 0), 2)
-                for name, info in finger_status.items():
-                    status_text = f"{name}: {'Extended' if info.extended else 'Bent'} | {info.angle:.1f}° | {info.direction}"
-                    cv2.putText(frame, status_text, (10, text_vertical_pos),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.7,
-                                (0, 255, 0) if info.extended else (0, 0, 255), 2)
-                    text_vertical_pos += 30
+        # Always show high-level gesture
+        cv2.putText(frame, f"Gesture: {meaning}", (10, 40),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 255), 2)
+
+        if DEBUG:
+            # Additionally show detailed finger info
+            text_vertical_pos = 100  # Start lower to avoid overlapping gesture text
+            cv2.putText(frame, f"Gesture: {gesture}", (10, 75),
+                    cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 255, 0), 2)
+            for name, info in finger_status.items():
+                status_text = f"{name}: {'Extended' if info.extended else 'Bent'} | {info.angle:.1f}° | {info.direction}"
+                cv2.putText(frame, status_text, (10, text_vertical_pos),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.7,
+                            (0, 255, 0) if info.extended else (0, 0, 255), 2)
+                text_vertical_pos += 30
 
 
         cv2.imshow("Finger Extension and Direction Viewer", frame)

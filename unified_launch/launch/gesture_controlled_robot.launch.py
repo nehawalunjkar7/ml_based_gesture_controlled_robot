@@ -3,6 +3,14 @@ from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
 from launch.conditions import IfCondition
 from launch_ros.actions import Node
+import os
+from ament_index_python.packages import get_package_share_directory
+
+rviz_config_file = os.path.join(
+    get_package_share_directory('robot_control'),  # your package name here
+    'rviz',
+    'robot_visual.rviz'
+)
 
 def generate_launch_description():
     enable_gesture = LaunchConfiguration('enable_gesture', default='true')
@@ -40,6 +48,6 @@ def generate_launch_description():
             executable='rviz2',
             name='rviz2',
             output='screen',
-            arguments=['-d', 'path/to/your/rviz_config.rviz']
+            arguments=['-d', rviz_config_file]
         )
     ])
