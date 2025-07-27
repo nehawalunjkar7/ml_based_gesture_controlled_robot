@@ -16,7 +16,7 @@ This repository is a **fork** of [ShubhamSonawane26/gesture\_controlled\_robot](
 
 ---
 
-## 📦 Package Overview
+## Package Overview
 
 ### 1. `model_and_data_generation`
 
@@ -61,7 +61,7 @@ This repository is a **fork** of [ShubhamSonawane26/gesture\_controlled\_robot](
 
 ---
 
-## 🚀 How to Run (Module-wise)
+## How to Run (Module-wise)
 
 ### 1. Data Collection and Model Training
 
