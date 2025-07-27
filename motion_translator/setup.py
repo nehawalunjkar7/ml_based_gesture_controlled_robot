@@ -22,6 +22,7 @@ setup(
     entry_points={
         'console_scripts': [
             'motion_translator_node = motion_translator.motion_translator_node:main',
+            'motion_translator_node_ML = motion_translator.motion_translator_node_ML:main',
         ],
     },
 )

@@ -24,14 +24,14 @@ def generate_launch_description():
 
         Node(
             package='gesture_recognition',
-            executable='gesture_node_v2',
+            executable='gesture_node_ML_v3',
             name='gesture_recognition_node',
             output='screen',
             condition=IfCondition(enable_gesture)
         ),
         Node(
             package='motion_translator',
-            executable='motion_translator_node',
+            executable='motion_translator_node_ML',
             name='motion_translator_node',
             output='screen',
             condition=IfCondition(enable_translator)

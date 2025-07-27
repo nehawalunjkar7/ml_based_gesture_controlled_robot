@@ -5,8 +5,8 @@ def generate_launch_description():
     return LaunchDescription([
         Node(
             package='motion_translator',
-            executable='motion_translator_node',
-            name='motion_translator_node',
+            executable='motion_translator_node_ML',
+            name='motion_translator_node_ML',
             output='screen',
         )
     ])
