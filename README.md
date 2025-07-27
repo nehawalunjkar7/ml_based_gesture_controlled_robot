@@ -28,7 +28,8 @@ This repository is a **fork** of [ShubhamSonawane26/gesture\_controlled\_robot](
   `gesture_pred_model.py`
 
 ### 2. `gesture_recognition`
-
+Important: Place the following files inside the gesture_recognition package folder before running the node:
+gesture_classifier.joblib, label_encoder.joblib, scaler.joblib
 * Detects hand gestures using computer vision and ML
 * **Node:**
   `gesture_node_ML_v3.py`
